@@ -1,0 +1,23 @@
+
+    
+.MENU {
+  background-color: #333;
+  padding: 10px;
+}
+.MENU ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+}
+.MENU li {
+  margin-right: 15px;
+}
+.MENU a {
+  color: white;
+  text-decoration: none;
+  font-weight: bold;
+}
+.MENU a:hover {
+  text-decoration: underline;
+}
