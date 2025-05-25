@@ -1,64 +1,3 @@
-<?php
-session_start();
-require_once "config.php";
-
-// Générer un token CSRF s'il n'existe pas
-if (!isset($_SESSION['csrf_token'])) {
-    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
-}
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $nom = trim($conn->real_escape_string($_POST['nom']));
-    $annee = trim($conn->real_escape_string($_POST['annee']));
-    
-    try {
-        $sql = "SELECT e.nomComplet, e.codeEleve, e.sexe, r.resultatFinal, 
-                o.nomOption, ec.nomEcole, p.nomProvince, ed.annee
-                FROM eleve e
-                JOIN resultat r ON e.resultat_idResultat = r.idResultat
-                JOIN option o ON e.option_idOption = o.idOption
-                JOIN ecole ec ON e.ecole_idEcole = ec.idEcole
-                JOIN province p ON ec.province_idProvince = p.idProvince
-                JOIN edition ed ON r.edition_idEdition = ed.idEdition
-                WHERE e.nomComplet LIKE ? AND ed.annee = ?";
-                
-        $stmt = $conn->prepare($sql);
-        $searchNom = "%$nom%";
-        $stmt->bind_param("ss", $searchNom, $annee);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows > 0) {
-            $etudiant = $result->fetch_assoc();
-            $_SESSION['etudiant_data'] = $etudiant;
-            header("Location: afficher_Resultat.php");
-            exit();
-        } else {
-            $error_message = "Aucun résultat trouvé pour ces critères.";
-        }
-    } catch (Exception $e) {
-        error_log($e->getMessage());
-        $error_message = "Une erreur est survenue. Veuillez réessayer plus tard.";
-    }
-}
-
-/*
-$results = [];
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-  $search = $conn->real_escape_string($_POST['search']);
-  $annee = (int)$_POST['annee'];
-  
-  $sql = "SELECT e.*, r.resultatFinal 
-          FROM eleve e
-          JOIN resultat r ON e.resultat_idResultat = r.idResultat
-          WHERE (e.nomComplet LIKE '%$search%' OR e.codeEleve = '$search')
-          AND r.annee = $annee";
-  
-  $results = $conn->query($sql);
-}
-  */
-
-?>
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -66,9 +5,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Résultats Examen d'État</title>
   <link rel="stylesheet" href="CONSULTER_RESULTAT.CSS">
- 
-  <style>
-    body {
+ <style>
+  body {
    height: 100vh;
    margin: 0;
    background-color: black;
@@ -337,73 +275,35 @@ text-align: start;
   text-decoration-color: #ccc;
   color: #ccc;
 }
-froms_select{
+.from_select {
   display: block;
   width: 100%;
-  padding: .375rem 2.25rem .375rem .75rem;
-  -moz-padding-start: calc(.75rem - 3px);
-  font-size: .9rem;
-  font-weight: 400;
-  line-height: 1.6;
+  padding: .75rem 1rem;
+  font-size: 1rem;
+  font-weight: 500;
   color: #212529;
   background-color: #f8fafc;
-  background-repeat: no-repeat;
-  background-position: right .75rem center;
-  background-size: 16px 12px;
   border: 1px solid #ced4da;
   border-radius: .375rem;
   transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
-  appearance: none; 
+  appearance: none;
+}
+form input[type="text"]:focus,
+form input[type="number"]:focus,
+form select:focus {
+  outline: none;
+  border: 2px solid #212529;
+  box-shadow: 0 0 8px 2px #212529;
+}
+form input[type="text"],
+form input[type="number"],
+form select {
+  transition: all 0.3s ease-in-out;
 }
 
-.error-message {
-    background-color: #ffe6e6;
-    color: #dc3545;
-    padding: 10px;
-    border-radius: 5px;
-    margin: 10px 0;
-    text-align: center;
-}
 
-.loading {
-    display: none;
-    text-align: center;
-    margin: 10px 0;
-}
-
-.loading::after {
-    content: "⌛";
-    animation: loading 1s infinite;
-}
-
-@keyframes loading {
-    0% { content: "⌛"; }
-    50% { content: "⏳"; }
-}
-
-/* Responsive improvements */
-@media (max-width: 768px) {
-    .logo {
-        padding-left: 20px;
-    }
-    
-    form {
-        padding: 10px;
-    }
-    
-    .conteneurpied {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    #logo, .piedm, .piedlie, .piedC {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-}
-  </style>
+ </style>
 </head>
-
 <body>
 
   <header>
@@ -420,7 +320,7 @@ froms_select{
 
       <div class="corps2">
         <div class="torace1">
-          <img src="images/exetat.jpg" alt="images Étudiants">
+          <img src="images/CONSU.png" alt="images Étudiants">
         </div>
       </div>
 
@@ -433,19 +333,34 @@ froms_select{
         </nav>
         </div>
 
-        <div class="formulaire">
-            <?php if (isset($error_message)): ?>
-                <div class="error-message">
-                    <?php echo htmlspecialchars($error_message); ?>
-                </div>
-            <?php endif; ?>
-            
-            <form method="POST" action="">
-                <input type="text" name="nom" placeholder="Saisissez votre nom complet" required>
-                <input type="number" name="annee" placeholder="Écrivez votre année de diplôme (ex: 2025)" required>
-                <input type="submit" value="Rechercher">
-                <div class="loading" id="loadingIndicator">Recherche en cours...</div>
-            </form>
+        <div class="formulaire" >
+          <form action="index.php" method="POST">
+            <input type="text" id="ECOLE" placeholder="Nom de l'ecole(COL COLEGE,INST INSTITUT,CS)" name="ECOL">
+           <select name="facultes" required class="from_select">
+            <option value="sel" disabled selected> ---selectionnez l'option--- </option>
+            <option value="sc">SCIENTIFIQUES</option>
+            <option value="cg">COMERCIALE ET GESTION</option>
+            <option value="eco">ECONOMIES</option>
+            <option value="ele">ELECTRONIQUES</option>
+            <option value="peda">PEDAGOGIES</option>
+            <option value="nitru">NUTRITION</option>
+           </select>
+           <select name="cycle"  class="from_select">
+           <option value="sel" required>---selectionnez le cycle--</option>
+           <option value="lon">long</option>
+           <option value="cour">court</option>
+           </select>
+           <select name="province"  class="from_select">
+            <option value="section">---selectionnez le Pronvice--</option>
+            <option value="Rum">RUMONGE</option>
+            <option value="Git">GITEGA</option>
+            <option value="Ruh">RUHUGO</option>
+            <option value="Cib">CIBITOKE</option>
+            <option value="Ru">RUTANNA</option>
+           </select>
+
+            <input type="submit" value="Rechercher" name="recherche">
+          </form>
         </div>
       </div>
 
@@ -485,11 +400,5 @@ froms_select{
     </div>
   </footer>
   
-  <script>
-    function showLoading() {
-        document.getElementById('loadingIndicator').style.display = 'block';
-        return true;
-    }
-  </script>
 </body>
 </html>
